@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Start Options</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #2f479e; /* Beyaz arka plan */
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      width: 90%;
+      max-width: 800px;
+      margin: 20px auto;
+      background-color: #f4f5f7; /* Hafif gri ton */
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    h1, h2 {
+      color: #007bff; /* Logodaki mavi ton */
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #f57c00; /* Logodaki turuncu ton */
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #d65c00; /* Daha koyu turuncu */
+    }
+    .status {
+      margin: 20px 0;
+      padding: 10px;
+      background-color: #e3f2fd; /* Hafif mavi ton */
+      border: 1px solid #90caf9; /* Daha koyu mavi */
+      border-radius: 4px;
+    }
+    #terminal {
+      height: 200px;
+      overflow-y: scroll;
+      border: 1px solid #ccc;
+      padding: 5px;
+      margin-top: 10px;
+      background: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Start Options</h1>
+    <label for="totalNum">Enter a Number:</label>
+    <input type="number" id="totalNum" placeholder="Enter total number..." />
+
+    <label for="method">Select Method:</label>
+    <select id="method">
+      <option value="auto">Auto</option>
+      <option value="random">Random</option>
+    </select>
+
+    <div class="status" id="status">Status: <strong>stopped</strong></div>
+
+    <button id="startBtn">Start Test</button>
+    <button id="stopBtn">Stop Test</button>
+
+    <h2>Last Results</h2>
+    <div id="terminal"></div>
+  </div>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const statusDiv = document.getElementById('status');
+    const terminal = document.getElementById('terminal');
+    let socket;
+
+    function updateStatus(newStatus) {
+      statusDiv.innerHTML = `Status: <strong>${newStatus}</strong>`;
+    }
+
+    function appendLog(message) {
+      terminal.innerHTML += message + '<br>';
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    startBtn.addEventListener('click', async () => {
+      const totalNum = document.getElementById("totalNum").value;
+      const method = document.getElementById("method").value;
+
+      const response = await fetch("http://45.94.4.139:1456/start-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method: "start", total_num: totalNum, schedule_method: method }),
+      });
+
+      if (response.ok) {
+        updateStatus('running');
+        appendLog("Test started...");
+        socket = new WebSocket("ws://45.94.4.139:1456");
+        socket.onmessage = (event) => appendLog(event.data);
+      } else {
+        appendLog("Failed to start test.");
+      }
+    });
+
+    stopBtn.addEventListener('click', async () => {
+      const response = await fetch("http://45.94.4.139:1456/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method: "stop" }),
+      });
+
+      if (response.ok) {
+        updateStatus('stopped');
+        appendLog("Test stopped.");
+        if (socket) socket.close();
+      } else {
+        appendLog("Failed to stop test.");
+      }
+    });
+  </script>
+</body>
+</html>
